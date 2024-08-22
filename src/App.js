@@ -59,75 +59,84 @@ class App extends Component {
   loginHandler = (event, authData) => {
     event.preventDefault();
     const graphqlQuery = {
-			query: `
-      {
-        login(email: "${authData.email}", password: "${authData.password}"){
-          token
-          userId
+      query: `
+        query UserLogin($email: String!, $password: String!) {
+          login(email: $email, password: $password) {
+            token
+            userId
+          }
         }
-      }
       `,
-		}
-		console.log(authData)
-		this.setState({ authLoading: true })
-		fetch("http://localhost:8080/graphql", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(graphqlQuery),
-		})
-			.then((res) => {
-				return res.json()
-			})
-			.then((resData) => {
-				if (resData.errors && resData.errors[0].status === 422) {
-					throw new Error(
-						"Validation failed. Make sure the email address isn't used yet!"
-					)
-				}
-				if (resData.errors) {
-					console.log(resData.errors)
-					throw new Error("User login failed")
-				}
-				console.log(resData)
-				this.setState({
-					isAuth: true,
-					token: resData.data.login.token,
-					authLoading: false,
-					userId: resData.data.login.userId,
-				})
-				localStorage.setItem("token", resData.data.login.token)
-				localStorage.setItem("userId", resData.data.login.userId)
-				const remainingMilliseconds = 60 * 60 * 1000
-				const expiryDate = new Date(
-					new Date().getTime() + remainingMilliseconds
-				)
-				localStorage.setItem("expiryDate", expiryDate.toISOString())
-				this.setAutoLogout(remainingMilliseconds)
-			})
-			.catch((err) => {
-				console.log(err)
-				this.setState({
-					isAuth: false,
-					authLoading: false,
-					error: err,
-				})
-			})
+      variables: {
+        email: authData.email,
+        password: authData.password,
+      },
+    };
+    console.log(authData);
+    this.setState({ authLoading: true });
+    fetch("http://localhost:8080/graphql", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(graphqlQuery),
+    })
+      .then((res) => {
+        return res.json();
+      })
+      .then((resData) => {
+        if (resData.errors && resData.errors[0].status === 422) {
+          throw new Error(
+            "Validation failed. Make sure the email address isn't used yet!"
+          );
+        }
+        if (resData.errors) {
+          console.log(resData.errors);
+          throw new Error("User login failed");
+        }
+        console.log(resData);
+        this.setState({
+          isAuth: true,
+          token: resData.data.login.token,
+          authLoading: false,
+          userId: resData.data.login.userId,
+        });
+        localStorage.setItem("token", resData.data.login.token);
+        localStorage.setItem("userId", resData.data.login.userId);
+        const remainingMilliseconds = 60 * 60 * 1000;
+        const expiryDate = new Date(
+          new Date().getTime() + remainingMilliseconds
+        );
+        localStorage.setItem("expiryDate", expiryDate.toISOString());
+        this.setAutoLogout(remainingMilliseconds);
+      })
+      .catch((err) => {
+        console.log(err);
+        this.setState({
+          isAuth: false,
+          authLoading: false,
+          error: err,
+        });
+      });
   };
 
   signupHandler = (event, authData) => {
     event.preventDefault();
     this.setState({ authLoading: true });
-    const grapqlQuery = {
+    const graphqlQuery = {
       query: `
-        mutation {
-          createUser(userInput:{email:"${authData.signupForm.email.value}", name:"${authData.signupForm.name.value}", password:"${authData.signupForm.password.value}"}){
+        mutation CreateNewUser($email: String!, $name: String!, $password: String!) {
+          createUser(userInput: {email: $email, name: $name, password: $password}) {
             _id
             email
           }
         }
       `,
+      variables: {
+        email: authData.signupForm.email.value,
+        name: authData.signupForm.name.value,
+        password: authData.signupForm.password.value,
+      },
     };
 
     fetch("http://localhost:8080/graphql", {
